@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+	
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.control.CheckBox?>
+	
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="it.polito.teaching.cv.FaceDetectionController">
+	<top>
+		<VBox>
+			<HBox alignment="CENTER" spacing="10">
+				<padding>
+					<Insets top="10" bottom="10" />
+				</padding>
+				<CheckBox fx:id="haarClassifier" onAction="#haarSelected" text="Haar Classifier"/>
+				<CheckBox fx:id="lbpClassifier" onAction="#lbpSelected" text="LBP Classifier"/>
+			</HBox>
+			<Separator />
+		</VBox>
+	</top>
+	<center>
+		<VBox alignment="CENTER">
+			<padding>
+				<Insets right="10" left="10" />
+			</padding>
+			<ImageView fx:id="originalFrame" />
+		</VBox>
+	</center>
+	<bottom>
+		<HBox alignment="CENTER">
+			<padding>
+				<Insets top="25" right="25" bottom="25" left="25" />
+			</padding>
+			<Button fx:id="cameraButton" alignment="center" text="Start camera" onAction="#startCamera" disable="true" />
+		</HBox>
+	</bottom>
+</BorderPane>
