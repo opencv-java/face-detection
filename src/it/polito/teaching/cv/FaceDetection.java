@@ -16,10 +16,11 @@ import javafx.fxml.FXMLLoader;
  * face in a frame. It can use the Haar or the LBP classifier.
  * 
  * @author <a href="mailto:luigi.derussis@polito.it">Luigi De Russis</a>
- * @since 2014-01-10
+ * @version 1.0 (2014-01-10)
+ * @since 1.0
  * 
  */
-public class Lab5 extends Application
+public class FaceDetection extends Application
 {
 	@Override
 	public void start(Stage primaryStage)
@@ -36,7 +37,7 @@ public class Lab5 extends Application
 			scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
 			// create the stage with the given title and the previously created
 			// scene
-			primaryStage.setTitle("Lab5");
+			primaryStage.setTitle("Face Detection and Tracking");
 			primaryStage.setScene(scene);
 			// show the GUI
 			primaryStage.show();

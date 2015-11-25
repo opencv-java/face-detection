@@ -1,25 +1,22 @@
 package it.polito.teaching.cv;
 
 import java.io.ByteArrayInputStream;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.highgui.Highgui;
-import org.opencv.highgui.VideoCapture;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.objdetect.Objdetect;
+import org.opencv.videoio.VideoCapture;
 
-import javafx.application.Platform;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -34,8 +31,9 @@ import javafx.scene.image.ImageView;
  * controls and the face detection/tracking.
  * 
  * @author <a href="mailto:luigi.derussis@polito.it">Luigi De Russis</a>
- * @since 2014-01-10
- * 
+ * @version 1.1 (2015-11-10)
+ * @since 1.0 (2014-01-10)
+ * 		
  */
 public class FaceDetectionController
 {
@@ -52,7 +50,7 @@ public class FaceDetectionController
 	private CheckBox lbpClassifier;
 	
 	// a timer for acquiring the video stream
-	private Timer timer;
+	private ScheduledExecutorService timer;
 	// the OpenCV object that performs the video capture
 	private VideoCapture capture;
 	// a flag to change the button behavior
@@ -78,12 +76,8 @@ public class FaceDetectionController
 	@FXML
 	protected void startCamera()
 	{
-		// bind an image property with the original frame container
-		final ObjectProperty<Image> imageProp = new SimpleObjectProperty<>();
-		this.originalFrame.imageProperty().bind(imageProp);
-		
 		// set a fixed width for the frame
-		originalFrame.setFitWidth(380);
+		originalFrame.setFitWidth(600);
 		// preserve image ratio
 		originalFrame.setPreserveRatio(true);
 		
@@ -102,26 +96,18 @@ public class FaceDetectionController
 				this.cameraActive = true;
 				
 				// grab a frame every 33 ms (30 frames/sec)
-				TimerTask frameGrabber = new TimerTask() {
+				Runnable frameGrabber = new Runnable() {
+					
 					@Override
 					public void run()
 					{
-						// update the image property => update the frame
-						// shown in the UI
-						final Image frame = grabFrame();
-						Platform.runLater(new Runnable() {
-							
-							@Override
-							public void run()
-							{
-								// show the original frames
-								imageProp.set(frame);
-							}
-						});
+						Image imageToShow = grabFrame();
+						originalFrame.setImage(imageToShow);
 					}
 				};
-				this.timer = new Timer();
-				this.timer.schedule(frameGrabber, 0, 33);
+				
+				this.timer = Executors.newSingleThreadScheduledExecutor();
+				this.timer.scheduleAtFixedRate(frameGrabber, 0, 33, TimeUnit.MILLISECONDS);
 				
 				// update the button content
 				this.cameraButton.setText("Stop Camera");
@@ -143,13 +129,21 @@ public class FaceDetectionController
 			this.lbpClassifier.setDisable(false);
 			
 			// stop the timer
-			if (this.timer != null)
+			try
 			{
-				this.timer.cancel();
-				this.timer = null;
+				this.timer.shutdown();
+				this.timer.awaitTermination(33, TimeUnit.MILLISECONDS);
 			}
+			catch (InterruptedException e)
+			{
+				// log the exception
+				System.err.println("Exception in stopping the frame capture, trying to release the camera now... " + e);
+			}
+			
 			// release the camera
 			this.capture.release();
+			// clean the frame
+			this.originalFrame.setImage(null);
 		}
 	}
 	
@@ -220,14 +214,14 @@ public class FaceDetectionController
 		}
 		
 		// detect faces
-		this.faceCascade.detectMultiScale(grayFrame, faces, 1.1, 2, 0 | Objdetect.CASCADE_SCALE_IMAGE, new Size(
-				this.absoluteFaceSize, this.absoluteFaceSize), new Size());
-		
+		this.faceCascade.detectMultiScale(grayFrame, faces, 1.1, 2, 0 | Objdetect.CASCADE_SCALE_IMAGE,
+				new Size(this.absoluteFaceSize, this.absoluteFaceSize), new Size());
+				
 		// each rectangle in faces is a face: draw them!
 		Rect[] facesArray = faces.toArray();
 		for (int i = 0; i < facesArray.length; i++)
-			Core.rectangle(frame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 3);
-		
+			Imgproc.rectangle(frame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0), 3);
+			
 	}
 	
 	/**
@@ -240,7 +234,7 @@ public class FaceDetectionController
 		// check whether the lpb checkbox is selected and deselect it
 		if (this.lbpClassifier.isSelected())
 			this.lbpClassifier.setSelected(false);
-		
+			
 		this.checkboxSelection("resources/haarcascades/haarcascade_frontalface_alt.xml");
 	}
 	
@@ -254,7 +248,7 @@ public class FaceDetectionController
 		// check whether the haar checkbox is selected and deselect it
 		if (this.haarClassifier.isSelected())
 			this.haarClassifier.setSelected(false);
-		
+			
 		this.checkboxSelection("resources/lbpcascades/lbpcascade_frontalface.xml");
 	}
 	
@@ -285,7 +279,7 @@ public class FaceDetectionController
 		// create a temporary buffer
 		MatOfByte buffer = new MatOfByte();
 		// encode the frame in the buffer, according to the PNG format
-		Highgui.imencode(".png", frame, buffer);
+		Imgcodecs.imencode(".png", frame, buffer);
 		// build and return an Image created from the image encoded in the
 		// buffer
 		return new Image(new ByteArrayInputStream(buffer.toArray()));
