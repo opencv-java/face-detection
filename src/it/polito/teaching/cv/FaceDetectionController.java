@@ -130,21 +130,7 @@ public class FaceDetectionController
 			this.lbpClassifier.setDisable(false);
 			
 			// stop the timer
-			try
-			{
-				this.timer.shutdown();
-				this.timer.awaitTermination(33, TimeUnit.MILLISECONDS);
-			}
-			catch (InterruptedException e)
-			{
-				// log the exception
-				System.err.println("Exception in stopping the frame capture, trying to release the camera now... " + e);
-			}
-			
-			// release the camera
-			this.capture.release();
-			// clean the frame
-			this.originalFrame.setImage(null);
+			this.stopAcquisition();
 		}
 	}
 	
