@@ -3,7 +3,9 @@ package it.polito.teaching.cv;
 import org.opencv.core.Core;
 
 import javafx.application.Application;
+import javafx.event.EventHandler;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.fxml.FXMLLoader;
@@ -16,8 +18,8 @@ import javafx.fxml.FXMLLoader;
  * face in a frame. It can use the Haar or the LBP classifier.
  * 
  * @author <a href="mailto:luigi.derussis@polito.it">Luigi De Russis</a>
- * @version 1.0 (2014-01-10)
- * @since 1.0
+ * @version 2.0 (2017-03-10)
+ * @since 1.0 (2014-01-10)
  * 
  */
 public class FaceDetection extends Application
@@ -45,6 +47,14 @@ public class FaceDetection extends Application
 			// init the controller
 			FaceDetectionController controller = loader.getController();
 			controller.init();
+			
+			// set the proper behavior on closing the application
+			primaryStage.setOnCloseRequest((new EventHandler<WindowEvent>() {
+				public void handle(WindowEvent we)
+				{
+					controller.setClosed();
+				}
+			}));
 		}
 		catch (Exception e)
 		{

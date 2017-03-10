@@ -1,22 +1,20 @@
 package it.polito.teaching.cv;
 
-import java.io.ByteArrayInputStream;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.objdetect.Objdetect;
 import org.opencv.videoio.VideoCapture;
 
+import it.polito.elite.teaching.cv.utils.Utils;
 import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -68,6 +66,11 @@ public class FaceDetectionController
 		this.capture = new VideoCapture();
 		this.faceCascade = new CascadeClassifier();
 		this.absoluteFaceSize = 0;
+		
+		// set a fixed width for the frame
+		originalFrame.setFitWidth(600);
+		// preserve image ratio
+		originalFrame.setPreserveRatio(true);
 	}
 	
 	/**
@@ -75,12 +78,7 @@ public class FaceDetectionController
 	 */
 	@FXML
 	protected void startCamera()
-	{
-		// set a fixed width for the frame
-		originalFrame.setFitWidth(600);
-		// preserve image ratio
-		originalFrame.setPreserveRatio(true);
-		
+	{	
 		if (!this.cameraActive)
 		{
 			// disable setting checkboxes
@@ -101,8 +99,11 @@ public class FaceDetectionController
 					@Override
 					public void run()
 					{
-						Image imageToShow = grabFrame();
-						originalFrame.setImage(imageToShow);
+						// effectively grab and process a single frame
+						Mat frame = grabFrame();
+						// convert and show the frame
+						Image imageToShow = Utils.mat2Image(frame);
+						updateImageView(originalFrame, imageToShow);
 					}
 				};
 				
@@ -152,10 +153,8 @@ public class FaceDetectionController
 	 * 
 	 * @return the {@link Image} to show
 	 */
-	private Image grabFrame()
+	private Mat grabFrame()
 	{
-		// init everything
-		Image imageToShow = null;
 		Mat frame = new Mat();
 		
 		// check if the capture is open
@@ -171,20 +170,17 @@ public class FaceDetectionController
 				{
 					// face detection
 					this.detectAndDisplay(frame);
-					
-					// convert the Mat object (OpenCV) to Image (JavaFX)
-					imageToShow = mat2Image(frame);
 				}
 				
 			}
 			catch (Exception e)
 			{
 				// log the (full) error
-				System.err.println("ERROR: " + e);
+				System.err.println("Exception during the image elaboration: " + e);
 			}
 		}
 		
-		return imageToShow;
+		return frame;
 	}
 	
 	/**
@@ -268,21 +264,51 @@ public class FaceDetectionController
 	}
 	
 	/**
-	 * Convert a Mat object (OpenCV) in the corresponding Image for JavaFX
-	 * 
-	 * @param frame
-	 *            the {@link Mat} representing the current frame
-	 * @return the {@link Image} to show
+	 * Stop the acquisition from the camera and release all the resources
 	 */
-	private Image mat2Image(Mat frame)
+	private void stopAcquisition()
 	{
-		// create a temporary buffer
-		MatOfByte buffer = new MatOfByte();
-		// encode the frame in the buffer, according to the PNG format
-		Imgcodecs.imencode(".png", frame, buffer);
-		// build and return an Image created from the image encoded in the
-		// buffer
-		return new Image(new ByteArrayInputStream(buffer.toArray()));
+		if (this.timer!=null && !this.timer.isShutdown())
+		{
+			try
+			{
+				// stop the timer
+				this.timer.shutdown();
+				this.timer.awaitTermination(33, TimeUnit.MILLISECONDS);
+			}
+			catch (InterruptedException e)
+			{
+				// log any exception
+				System.err.println("Exception in stopping the frame capture, trying to release the camera now... " + e);
+			}
+		}
+		
+		if (this.capture.isOpened())
+		{
+			// release the camera
+			this.capture.release();
+		}
+	}
+	
+	/**
+	 * Update the {@link ImageView} in the JavaFX main thread
+	 * 
+	 * @param view
+	 *            the {@link ImageView} to update
+	 * @param image
+	 *            the {@link Image} to show
+	 */
+	private void updateImageView(ImageView view, Image image)
+	{
+		Utils.onFXThread(view.imageProperty(), image);
+	}
+	
+	/**
+	 * On application close, stop the acquisition from the camera
+	 */
+	protected void setClosed()
+	{
+		this.stopAcquisition();
 	}
 	
 }
