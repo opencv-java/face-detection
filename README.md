@@ -1,5 +1,7 @@
 ## Face Detection with OpenCV and JavaFX
 
+[![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/)
+
 *Computer Vision course - [Politecnico di Torino](http://www.polito.it)*
 
 A project, made in Eclipse (Neon), for detecting human faces in a video taken from a webcam. It uses the Haar and LBP classifiers already available in the OpenCV library.
